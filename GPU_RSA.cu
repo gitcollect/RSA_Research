@@ -4,8 +4,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <string.h>
-//#define R_size 133
-#define R_size 129//129
+
+#define R_size 129
 #define k 1024
 #define n_size 128
 
@@ -323,13 +323,10 @@ unsigned char *r = (unsigned char *) calloc(2*n_size, sizeof(char));
 	cudaMalloc(&gpu_ciphertext, n_size);
 	cudaMemset(gpu_ciphertext, 0x00, n_size);
 
-	//unsigned char *m0_copy_cpu = calloc(n_size, sizeof(char));
 	unsigned char *m0_copy;
 	cudaMalloc(&m0_copy, n_size);
 
 	unsigned char *reduction = (unsigned char *) calloc(n_size, sizeof(char));
-	//unsigned char *reduction_gpu;
-	//cudaMalloc(&reduction_gpu, n_size);
 
 	unsigned char *buf_cpu = (unsigned char *) calloc((n_size * 2) + 1, sizeof(char));
 	unsigned char *buf_gpu;
@@ -339,7 +336,6 @@ unsigned char *r = (unsigned char *) calloc(2*n_size, sizeof(char));
 	unsigned char *temp_cpu = (unsigned char *) calloc(3*n_size, sizeof(char));
 	unsigned char *temp_gpu;
 	cudaMalloc(&temp_gpu, (3*n_size));
-	//unsigned char *temp = calloc(3 * n_size, sizeof(char));
 	
 	unsigned char *shifted_cpu = (unsigned char *) calloc(n_size, sizeof(char));
 	unsigned char *shifted_gpu;
@@ -352,12 +348,8 @@ unsigned char *r = (unsigned char *) calloc(2*n_size, sizeof(char));
 	cudaMemset(xprime_gpu, 0x00, 2*n_size);
 
 	unsigned char *result = (unsigned char *) calloc(n_size + 1, sizeof(char));
-	//unsigned char *result_gpu;
-	//cudaMalloc(&result_gpu, n_size + 1);
 	
 	unsigned char *tmp = (unsigned char *) calloc(n_size + 1, sizeof(char));
-	//unsigned char *tmp_gpu;
-	//cudaMalloc(&tmp_gpu, n_size + 1);
 
 	unsigned int *transfer = (unsigned int *) calloc(4*n_size, sizeof(int));
 	unsigned int *kernel_buf;
@@ -570,14 +562,8 @@ void exponentiation(unsigned char *gpu_message, unsigned char *exponent, unsigne
 	//for loop of exponent in binary
 	unsigned int exp_bits = (total_bits - msb);
 
-	//save copy of m0
-	//unsigned char *m0_copy = calloc(n_size, sizeof(char));
-
-
-	cudaMemcpy(m0_copy, gpu_message, n_size, cudaMemcpyDeviceToDevice);
-
 	//keep copy of original message m0
-	//memcpy(m0_copy, message, n_size);
+	cudaMemcpy(m0_copy, gpu_message, n_size, cudaMemcpyDeviceToDevice);
 
 	//compute m^e where e is in binary 
 	//RULES:
@@ -599,18 +585,6 @@ void exponentiation(unsigned char *gpu_message, unsigned char *exponent, unsigne
 
 		//allocate space for reduction to hold a value strickly less than n
 		//buf holds value at most m^2 which is less than n^2
-		//unsigned char *reduction = calloc(n_size, sizeof(char));
-		//unsigned char *buf = calloc(n_size * 2, sizeof(char));
-
-
-		/*unsigned char *m = (unsigned char *) malloc(n_size);
-		cudaMemcpy(m, gpu_message, n_size, cudaMemcpyDeviceToHost);
-		int u = 0;
-		while (u < n_size) {
-			printf("gpu_message[%d] = %x\n", u, m[u]);
-			u++;
-		}*/
-
 
 		//calculate m^2
 		get_square<<<blocksPerGrid, threadsPerBlock>>>(gpu_message, kernel_buf, n_size);
@@ -623,12 +597,6 @@ void exponentiation(unsigned char *gpu_message, unsigned char *exponent, unsigne
 			index++;
 		}
 	
-	/*	int z = 0;
-		while(z < 2*n_size) {
-			printf("buf_cpu[%d] = %x\n", z, buf_cpu[z]);
-			z++;
-		}*/
-
 		memset(transfer, 0x00, 4*n_size*sizeof(int));	
 		cudaMemset(kernel_buf, 0x00, 4*n_size*sizeof(int));
 		cudaMemcpy(buf_gpu, buf_cpu, 2*n_size, cudaMemcpyHostToDevice);
@@ -637,13 +605,6 @@ void exponentiation(unsigned char *gpu_message, unsigned char *exponent, unsigne
 		barrett_reduction(buf_cpu, buf_gpu, gpu_r, gpu_n, reduction, temp_cpu, temp_gpu, shifted_cpu, shifted_gpu, xprime_cpu, xprime_gpu, result, tmp, exponent_size, kernel_buf, transfer, n);
 
 		cudaMemcpy(gpu_message, reduction, n_size, cudaMemcpyHostToDevice);
-
-	/*	int z = 0;
-		while(z < 2*n_size) {
-			printf("buf_cpu[%d] = %x\n", z, buf_cpu[z]);
-			z++;
-		}*/
-
 
 		cudaMemset(buf_gpu, 0x00, 2*n_size);
 		memset(buf_cpu, 0x00, 2*n_size);
@@ -670,8 +631,6 @@ void exponentiation(unsigned char *gpu_message, unsigned char *exponent, unsigne
 
 			barrett_reduction(buf_cpu, buf_gpu, gpu_r, gpu_n, reduction, temp_cpu, temp_gpu, shifted_cpu, shifted_gpu, xprime_cpu, xprime_gpu, result, tmp, exponent_size, kernel_buf, transfer, n);
 
-			//barrett reduction
-			//barrett_reduction(buf, r, n, reduction, temp, shifted, xprime, result, tmp, exponent_size);
 			cudaMemcpy(gpu_message, reduction, n_size, cudaMemcpyHostToDevice);
 			cudaMemset(buf_gpu, 0x00, 2*n_size);
 			memset(buf_cpu, 0x00, 2*n_size);
@@ -685,9 +644,6 @@ void exponentiation(unsigned char *gpu_message, unsigned char *exponent, unsigne
 	//copy back final value of message to ciphertext for decryption
 	cudaMemcpy(gpu_ciphertext, gpu_message, n_size, cudaMemcpyDeviceToHost);
 
-	//cudaMemset(buf_gpu, 0x00, 2*n_size);
-	//memset(buf_cpu, 0x00, 2*n_size);
-	//memset(reduction, 0x00, n_size);
 	cudaMemset(m0_copy, 0x00, n_size);
 
 	return;
@@ -705,18 +661,7 @@ void barrett_reduction(unsigned char *buf_cpu, unsigned char *buf_gpu, unsigned 
 	dim3 blocksPerGrid_two(4);
 	dim3 threadsPerBlock_two(64);
 
-/*	unsigned char *test1 = (unsigned char *) malloc(2*n_size);
-	cudaMemcpy(test1, gpu_r, 2*n_size, cudaMemcpyDeviceToHost);
-	unsigned char *test2 = (unsigned char *) malloc(2*n_size);
-	cudaMemcpy(test2, buf_gpu, 2*n_size, cudaMemcpyDeviceToHost);
-	int w = 0;
-	while(w < 2*n_size) {
-		printf("gpu_r[%d] = %x      buf_gpu[%d] = %x\n", w, test1[w], w, test2[w]);
-		w++;
-	}*/
-
-
-	get_products<<<blocksPerGrid_two, threadsPerBlock_two>>>(gpu_r, buf_gpu, kernel_buf, 2*n_size);//(buf, r, temp, 2*n_size)
+	get_products<<<blocksPerGrid_two, threadsPerBlock_two>>>(gpu_r, buf_gpu, kernel_buf, 2*n_size);
 	cudaMemcpy(transfer, kernel_buf, 3*n_size*sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
 	unsigned int index = 0;
@@ -726,27 +671,11 @@ void barrett_reduction(unsigned char *buf_cpu, unsigned char *buf_gpu, unsigned 
 		index++;
 	}
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////// CORRECT UP TO ITTERATION 1 /////////////////////////////////////////////////////
-
-
 	cudaMemset(kernel_buf, 0x00, 4*n_size*sizeof(int));
 
-	/*int z = 0;
-	while (z < (3*n_size)) {
-		printf("temp[%d] = %x\n", z, temp_cpu[z]);
-		z++;
-	}*/
-
-	//cudaMemcpy(temp_gpu, temp_cpu, 2*n_size, cudaMemcpyDeviceToHost);
-	
 	//shift bits by (4^k) or (2^(2*k))
 	//shift temp by 2*k store to shifted
 	//size of shifted is 2*n + sizeof(r)
-	//bit_shift(temp, shifted, k, (4*n_size) - ((2*k) >> 0x03));//(2*n_size) + R_size
-	//unsigned char *shifted = calloc(n_size, sizeof(char));
 	
 	//find the actual amount of bits/bytes left in the value of temp
 	//which is equal to x * r so that the correct size of the value
@@ -763,29 +692,15 @@ void barrett_reduction(unsigned char *buf_cpu, unsigned char *buf_gpu, unsigned 
 	}
 
 
-	bit_shift(temp_cpu, shifted_cpu, k, (3*n_size) - zero_bytes);//4*n_size
+	bit_shift(temp_cpu, shifted_cpu, k, (3*n_size) - zero_bytes);
 
-
-/*	int z = 0;
-	while (z < n_size) {
-		printf("shifted_cpu[%d] = %x\n", z, shifted_cpu[z]);
-		z++;
-	}*/
-
-
-	
 	//multiply: shifted * n = xprime
 	//xprime is the size of 2*n + R_size - (k >> 0x07) + n
-	//unsigned char *xprime = calloc((4*n_size) - ((2*k) >> 0x03) + n_size, sizeof(char));
-	 //2*n_size + R_size - ((2*k) >> 0x03) + n_size,
-	//unsigned char *xprime = calloc(2*n_size, sizeof(char));//2*n_size///////////////////////////
-	//multiplication(shifted, n, xprime, (4*n_size) - ((2*k) >> 0x03));//2*n_size + R_size - ((2*k) >> 0x03) + n_size)
-	
 	cudaMemcpy(shifted_gpu, shifted_cpu, n_size, cudaMemcpyHostToDevice);
 
 	dim3 blocksPerGrid_one(2);
 	dim3 threadsPerBlock_one(64);
-	get_products<<<blocksPerGrid_one, threadsPerBlock_one>>>(shifted_gpu, gpu_n, kernel_buf, n_size);//2*n_size
+	get_products<<<blocksPerGrid_one, threadsPerBlock_one>>>(shifted_gpu, gpu_n, kernel_buf, n_size);
 	cudaMemcpy(transfer, kernel_buf, 2*n_size*sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
 	index = 0;
@@ -796,27 +711,10 @@ void barrett_reduction(unsigned char *buf_cpu, unsigned char *buf_gpu, unsigned 
 	}
 
 
-	/*int z = 0;
-	while (z < 2*n_size) {
-		printf("xprime[%d] = %x\n", z, xprime_cpu[z]);
-		z++;
-	}*/
-
-
-	//cudaMemcpy(xprime_gpu, xprime_cpu, 2*n_size, cudaMemcpyDeviceToHost);
 
 	//subtract xprime from x^2
-
-////////////////////////////////////////////	memset(transfer, 0x00, 4*n_size*sizeof(int));
 	cudaMemset(kernel_buf, 0x00, 4*n_size*sizeof(int));
-	//cudaMemcpy(buf_cpu, buf_gpu, 2*n_size, cudaMemcpyDeviceToHost);
-	subtraction(buf_cpu, xprime_cpu, result, 2*n_size);//n_size
-
-/*	int z = 0;
-	while (z < n_size + 1) {
-		printf("result[%d] = %x\n", z, result[z]);
-		z++;
-	}*/
+	subtraction(buf_cpu, xprime_cpu, result, 2*n_size);
 
 	//the field of n, if the value is not within the field of n then reduce the value by subtracting
 	//the value of result = t - n which is guaranteed to be in the field of n
@@ -825,15 +723,13 @@ void barrett_reduction(unsigned char *buf_cpu, unsigned char *buf_gpu, unsigned 
 	}
 
 	else {
-		unsigned char *tmp = (unsigned char *) calloc(n_size + 1, sizeof(char));//n_size + 1
-		subtraction(result, n, tmp, n_size + 1);//n_size + 1, reduction
+		unsigned char *tmp = (unsigned char *) calloc(n_size + 1, sizeof(char));
+		subtraction(result, n, tmp, n_size + 1);
 		memcpy(reduction, tmp, n_size);
 		memset(tmp, 0x00, n_size + 1);
 	}
 
 
-//	memset(buf_cpu, 0x00, 2*n_size);
-//	cudaMemset(buf_gpu, 0x00, 2*n_size);
 	memset(temp_cpu, 0x00, 3*n_size);
 	cudaMemset(temp_gpu, 0x00, 3*n_size);
 	memset(shifted_cpu, 0x00, n_size);
@@ -841,7 +737,6 @@ void barrett_reduction(unsigned char *buf_cpu, unsigned char *buf_gpu, unsigned 
 	memset(xprime_cpu, 0x00, 2*n_size);
 	cudaMemset(xprime_gpu, 0x00, 2*n_size);
 	memset(result, 0x00, n_size + 1);
-	//cudaMemset(kernel_buf, 0x00, 4*sizeof(int)*n_size);
 	memset(transfer, 0x00, 4*n_size*sizeof(int));
 
 
@@ -960,9 +855,7 @@ void bit_shift(unsigned char *a, unsigned char *b, unsigned int k_val, unsigned 
         unsigned int j = 0;
         while (j < constant) {
                 b[j] = a[quotient + j] >> remainder;
-                //printf("a[%d] >> %d = %x\n", quotient + j, remainder, a[quotient + j] >> remainder);
                 unsigned char cpy_bits = a[quotient + j + 1] << (8 - remainder);
-                //printf("cpy_bits = %x\n", cpy_bits);
                 b[j] = b[j] | cpy_bits;
                 j++;
         }

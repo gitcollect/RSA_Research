@@ -4,8 +4,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <string.h>
-//#define R_size 133
-#define R_size 129//129
+
+#define R_size 129
 #define k 1024
 #define n_size 128
 
@@ -283,14 +283,6 @@ unsigned char *r = calloc(2*n_size, sizeof(char));
     r[127] = 0x1c;
     r[128] = 0x1;
 
-/*	if (argc != 3) {
-		printf("usage: ./a.out N ThreadsPerBlock\n");
-		exit(1);
-	}*/
-
-	/*unsigned int n = atoi(argv[1]);
-	unsigned int threads = atoi(argv[2]);*/
-
 	unsigned char *message = calloc(n_size, sizeof(char));
 	message[0] = 0x68;//h
 	message[1] = 0x65;//e
@@ -311,20 +303,11 @@ unsigned char *r = calloc(2*n_size, sizeof(char));
 	//exponent(e)
 	//precomputation of r = floor((4^k)/n) where k is found by where (2^k) > n
 	//modulus (n)
-
 	unsigned char *ciphertext = calloc(n_size, sizeof(char));
 	struct timeval cpu_start, cpu_end;
 	struct timezone tzp;
 
 	gettimeofday(&cpu_start, &tzp);	
-
-	//int q = 0;
-	//while (q < 2*n_size) {
-	//	printf("r[%d] = %x, n[%d] = %x\n", q, r[q], q, n[q]);
-	//	q++;
-	//}
-
-	//exit(0);
 
 	unsigned char *m0_copy = calloc(n_size, sizeof(char));
 	unsigned char *reduction = calloc(n_size, sizeof(char));
@@ -508,9 +491,6 @@ void exponentiation(unsigned char *message, unsigned char *exponent, unsigned ch
 	//for loop of exponent in binary
 	unsigned int exp_bits = (total_bits - msb);
 
-	//save copy of m0
-	//unsigned char *m0_copy = calloc(n_size, sizeof(char));
-
 	//keep copy of original message m0
 	memcpy(m0_copy, message, n_size);
 
@@ -524,13 +504,6 @@ void exponentiation(unsigned char *message, unsigned char *exponent, unsigned ch
 		//current bit is 1: m(current) * m0
 		//curent bit is 0: return to loop
 
-	//unsigned char *buf;//store multiplications sizeof m^2
-	//unsigned char *reduction;//store reductions sieof n
-
-//	unsigned char *reduction = calloc(n_size, sizeof(char));
-//	unsigned char *buf = calloc(n_size * 2, sizeof(char));
-
-
 	//subtract one from total because to exponentiate in binary
 	//start at the second bit after the most significant bit
 	//each bit equals m^2 and when the current bit is 1 it is
@@ -540,44 +513,15 @@ void exponentiation(unsigned char *message, unsigned char *exponent, unsigned ch
 
 		//allocate space for reduction to hold a value strickly less than n
 		//buf holds value at most m^2 which is less than n^2
-		//unsigned char *reduction = calloc(n_size, sizeof(char));
-		//unsigned char *buf = calloc(n_size * 2, sizeof(char));
-
-/*			int z = 0;
-	while(z<n_size) {
-		printf("message[%d] = %x\n", z, message[z]);
-		z++;
-	}*/
 
 		//calculate m^2
 		square(message, buf, n_size);
 	
-/*	int	z = 0;
-	while(z<2*n_size) {
-		printf("m^2 buf[%d] = %x\n", z, buf[z]);
-		z++;
-	}*/
-
-
 		//calculate m^2 mod n
 		barrett_reduction(buf, r, n, reduction, temp, shifted, xprime, result, tmp, exponent_size);
 
-	/*	int z = 0;
-	while(z<n_size) {
-		printf("reduction[%d] = %x\n", z, reduction[z]);
-		z++;
-	}*/
-
 		memcpy(message, reduction, n_size);
-
-		//free(buf);
-		//buf = malloc(2*n_size);
-		//realloc(buf, 2*n_size);
 		memset(buf, 0, 2*n_size);
-		
-		//free(reduction);
-		//reduction = malloc(n_size);
-		//realloc(reduction, n_size);
 		memset(reduction, 0, n_size);
 
 		char bit;
@@ -588,11 +532,9 @@ void exponentiation(unsigned char *message, unsigned char *exponent, unsigned ch
 			//barrett reduction
 			barrett_reduction(buf, r, n, reduction, temp, shifted, xprime, result, tmp, exponent_size);
 			memcpy(message, reduction, n_size);
-			//free(buf);
-			//buf = malloc(n_size);
+			
 			memset(buf, 0x00, 2*n_size);
-			//free(reduction);
-			//reduction = malloc(n_size);
+			
 			memset(reduction, 0x00, n_size);
 		
 		}
@@ -603,12 +545,6 @@ void exponentiation(unsigned char *message, unsigned char *exponent, unsigned ch
 	//copy back final value of message to ciphertext for decryption
 	memcpy(ciphertext, message, n_size);
 
-	//free(reduction);
-	//reduction = NULL;
-	//free(buf);
-	//buf = NULL;
-	//free(m0_copy);
-	//m0_copy = NULL;
 	memset(buf, 0x00, 2*n_size);
 	memset(reduction, 0x00, n_size);
 	memset(m0_copy, 0x00, n_size);
@@ -711,36 +647,11 @@ void barrett_reduction(unsigned char *buf, unsigned char *r, unsigned char *n, u
 	//size of x is assumed to be the largest value which is = largest value of 2*n
 	//size of r is precomputed
 
-	//unsigned char *temp = calloc(R_size + n_size, sizeof(char));//((2*n_size) + R_size)
-	multiplication(r, buf, temp, 2*n_size);//(buf, r, temp, 2*n_size)
+	multiplication(r, buf, temp, 2*n_size);
 
-	/*int z = 0;
-	while (z < (3*n_size)) {
-		printf("temp[%d] = %x\n", z, temp[z]);
-		z++;
-	}*/
-
-	//z = 0;
-	/*while (z < (2*n_size)) {
-		printf("buf[%d] = %x\n", z, buf[z]);
-		z++;
-	}*/
-
-	/*int z = 0;
-	while (z < 3*n_size) {
-		printf("temp[%d] = %x\n", z, temp[z]);
-		z++;
-	}*/
-
-
-
-//printf("\n");	
 	//shift bits by (4^k) or (2^(2*k))
 	//shift temp by 2*k store to shifted
 	//size of shifted is 2*n + sizeof(r)
-	//unsigned char *shifted = calloc((4*n_size) - ((2*k) >> 0x03), sizeof(char));
-	//bit_shift(temp, shifted, k, (4*n_size) - ((2*k) >> 0x03));//(2*n_size) + R_size
-	//unsigned char *shifted = calloc(n_size, sizeof(char));
 	
 	//find the actual amount of bits/bytes left in the value of temp
 	//which is equal to x * r so that the correct size of the value
@@ -756,46 +667,16 @@ void barrett_reduction(unsigned char *buf, unsigned char *r, unsigned char *n, u
 		zero_bytes++;
 	}
 
-	//printf("the value of the shift is %d and the total size is %d\n", 2 * k, (2*n_size + R_size) - zero_bytes);
-	//printf("\n");
-
-	bit_shift(temp, shifted, k, (3*n_size) - zero_bytes);//4*n_size
-/*	int z = 0;
-	while (z < n_size) {
-		printf("shifted[%d] = %x\n", z, shifted[z]);
-		z++;
-	}*/
-	//printf("\n");
-//printf("before\n");
+	bit_shift(temp, shifted, k, (3*n_size) - zero_bytes);
+	
 	//multiply: shifted * n = xprime
 	//xprime is the size of 2*n + R_size - (k >> 0x07) + n
-	//unsigned char *xprime = calloc((4*n_size) - ((2*k) >> 0x03) + n_size, sizeof(char));
 	 //2*n_size + R_size - ((2*k) >> 0x03) + n_size,
-	//unsigned char *xprime = calloc(2*n_size, sizeof(char));//2*n_size///////////////////////////
 	//multiplication(shifted, n, xprime, (4*n_size) - ((2*k) >> 0x03));//2*n_size + R_size - ((2*k) >> 0x03) + n_size)
-	multiplication(shifted, n, xprime, n_size);//2*n_size
+	multiplication(shifted, n, xprime, n_size);
 
-/*	int z = 0;
-	while (z < 2*n_size) {
-		printf("xprime[%d] = %x\n", z, xprime[z]);
-		z++;
-	}*/
-
-
-	//printf("\n");
-	//printf("\n");
-//printf("\n");
-//printf("\n");
-//printf("after\n");
 	//subtract xprime from x^2
-//	unsigned char *result = calloc(n_size + 1, sizeof(char));
-	subtraction(buf, xprime, result, 2*n_size);//n_size
-
-/*	int z = 0;
-	while (z < n_size + 1) {
-		printf("result[%d] = %x\n", z, result[z]);
-		z++;
-	}*/
+	subtraction(buf, xprime, result, 2*n_size);
 
 	//compare the value of t = x - xprime and see if the value is less than n, meaning it is within
 	//the field of n, if the value is not within the field of n then reduce the value by subtracting
@@ -805,13 +686,10 @@ void barrett_reduction(unsigned char *buf, unsigned char *r, unsigned char *n, u
 	}
 
 	else {
-		unsigned char *tmp = calloc(n_size + 1, sizeof(char));//n_size + 1
-		subtraction(result, n, tmp, n_size + 1);//n_size + 1, reduction
+		unsigned char *tmp = calloc(n_size + 1, sizeof(char));
+		subtraction(result, n, tmp, n_size + 1);
 		memcpy(reduction, tmp, n_size);
 		memset(tmp, 0x00, n_size + 1);
-	//	free(tmp);
-	//	tmp = NULL;
-		//tmp = NULL;
 	}
 
 	memset(temp, 0x00, 3*n_size);
@@ -921,11 +799,9 @@ void bit_shift(unsigned char *a, unsigned char *b, unsigned int k_val, unsigned 
 		return;
 	}
 
-        //printf("quotient = %d\n", quotient);
         //remainder will find final char index shift value = {0...7}
         //the specific bits to be shifted in the last group which is not greater than 7
         unsigned int remainder = shift & 0x07; // k % 8 
-        //printf("remainder = %d\n", remainder);
         //move a to b by shifting the characters an index of quotient amount
         //and then use the remainder to shift the final index to correct 
         //position
@@ -934,14 +810,12 @@ void bit_shift(unsigned char *a, unsigned char *b, unsigned int k_val, unsigned 
         unsigned int j = 0;
         while (j < constant) {
                 b[j] = a[quotient + j] >> remainder;
-                //printf("a[%d] >> %d = %x\n", quotient + j, remainder, a[quotient + j] >> remainder);
-                unsigned char cpy_bits = a[quotient + j + 1] << (8 - remainder);
-                //printf("cpy_bits = %x\n", cpy_bits);
-                b[j] = b[j] | cpy_bits;
+                
+		unsigned char cpy_bits = a[quotient + j + 1] << (8 - remainder);
+                
+		b[j] = b[j] | cpy_bits;
                 j++;
         }
 
-        //calculate final outside of the 
-        //b[j] = a[constant + j] >> remainder;
         return;
 }
